@@ -1,7 +1,7 @@
 
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'package:flutter_txplayer/ftxplayer.dart';
+import 'package:ftxplayer/ftxplayer.dart';
 
 class TestFTXPlayer extends StatefulWidget {
   @override
