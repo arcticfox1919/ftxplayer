@@ -8,6 +8,7 @@
 
 #import <Foundation/Foundation.h>
 #import <Flutter/FlutterPlugin.h>
+#import <TXLiteAVSDK_Player/TXLiteAVSDK.h>
 
 NS_ASSUME_NONNULL_BEGIN
 

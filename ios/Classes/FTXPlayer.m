@@ -8,7 +8,6 @@
 
 #import <Foundation/Foundation.h>
 #import <libkern/OSAtomic.h>
-#import <TXLiteAVSDK_Player/TXLiteAVSDK.h>
 #import <stdatomic.h>
 #import "FTXPlayer.h"
 #import "QueuingEventSink.h"
