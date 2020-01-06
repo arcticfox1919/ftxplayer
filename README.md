@@ -7,7 +7,7 @@
 
 `pubspec.yaml`中增加配置
 
-```
+```yaml
   ftxplayer:
     git:
       url: git@github.com:arcticfox1919/ftxplayer.git
@@ -18,7 +18,7 @@
 添加原生配置
 
 在Android的`AndroidManifest.xml`中增加如下配置
-```
+```xml
     <!--网络权限-->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -26,7 +26,7 @@
 ```
 
 在iOS的`Info.plist`中增加如下配置
-```
+```xml
     <key>NSAppTransportSecurity</key>
     <dict>
         <key>NSAllowsArbitraryLoads</key>
@@ -36,8 +36,7 @@
 
 Flutter 中调用
 
-```
-
+```dart
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:ftxplayer/ftxplayer.dart';
@@ -97,5 +96,4 @@ class _TestFTXPlayerState extends State<TestFTXPlayer> {
     super.dispose();
   }
 }
-
 ```
