@@ -30,6 +30,7 @@ class FTXPlayerController extends ChangeNotifier implements ValueListenable<FtxV
   StreamController.broadcast();
 
   Stream<FtxState> get onPlayerState => _stateStreamController.stream;
+  Stream<FtxWarning> get onWarning => _warningStreamController.stream;
 
   FTXPlayerController({this.playerType = PlayerType.VodPlayer})
       : _initPlayer = Completer(),
@@ -207,6 +208,7 @@ class FTXPlayerController extends ChangeNotifier implements ValueListenable<FtxV
       _changeState(FtxState.disposed);
       _isDisposed = true;
       _stateStreamController.close();
+      _warningStreamController.close();
     }
 
     super.dispose();
