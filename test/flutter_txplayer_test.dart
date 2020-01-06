@@ -1,6 +1,8 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_txplayer/ftxplayer.dart';
+import 'package:ftxplayer/ftxplayer.dart';
+
+
 
 
 void main() {
@@ -16,7 +18,7 @@ void main() {
     channel.setMockMethodCallHandler(null);
   });
 
-  test('getPlatformVersion', () async {
+  test('sdkVersion', () async {
     expect(await FTXPlayerPlugin.sdkVersion, '42');
   });
 }
