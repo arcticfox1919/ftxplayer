@@ -12,7 +12,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface FTXPlayer : NSObject<FlutterStreamHandler,TXLivePlayListener,TXVodPlayListener>
+@interface FTXPlayer : NSObject<FlutterStreamHandler,FlutterTexture,TXLivePlayListener,TXVodPlayListener,TXVideoCustomProcessDelegate>
 
 @property(atomic, readonly) NSNumber *playerId;
 

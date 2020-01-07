@@ -21,13 +21,16 @@ static const int uninitialized = -1;
     FlutterEventChannel *_eventChannel;
 
     id<FlutterPluginRegistrar> _registrar;
-//    id<FlutterTextureRegistry> _textureRegistry;
-//
-//    CVPixelBufferRef volatile _latestPixelBuffer;
-//    CVPixelBufferRef _lastBuffer;
+    id<FlutterTextureRegistry> _textureRegistry;
+
+    // 最新的一帧
+    CVPixelBufferRef volatile _latestPixelBuffer;
+    // 旧的一帧
+    CVPixelBufferRef _lastBuffer;
     
     TXLivePlayer *_txLivePlayer;
     TXVodPlayer *_txVodPlayer;
+    int64_t _textureId;
 }
 
 - (instancetype)initWithRegistrar:(id<FlutterPluginRegistrar>)registrar {
@@ -37,9 +40,9 @@ static const int uninitialized = -1;
         int pid = atomic_fetch_add(&atomicId, 1);
         _playerId = @(pid);
         _eventSink = [QueuingEventSink new];
-//        _latestPixelBuffer = nil;
-//        _lastBuffer = nil;
-
+        _latestPixelBuffer = nil;
+        _lastBuffer = nil;
+        _textureId = -1;
 
         _methodChannel = [FlutterMethodChannel
             methodChannelWithName:[@"arcticfox.com/txplayer/"
@@ -63,6 +66,15 @@ static const int uninitialized = -1;
     }
 
     return self;
+}
+
+- (CVPixelBufferRef _Nullable)copyPixelBuffer{
+    CVPixelBufferRef pixelBuffer = _latestPixelBuffer;
+    while (!OSAtomicCompareAndSwapPtrBarrier(pixelBuffer, nil,
+                                             (void **)&_latestPixelBuffer)) {
+        pixelBuffer = _latestPixelBuffer;
+    }
+    return pixelBuffer;
 }
 
 - (void)handleMethodCall:(FlutterMethodCall*)call result:(FlutterResult)result {
@@ -131,14 +143,76 @@ static const int uninitialized = -1;
         if (_txLivePlayer == nil) {
             _txLivePlayer = [TXLivePlayer new];
             _txLivePlayer.delegate = self;
+            [self setupPlayerWithBool:onlyAudio];
         }
     }else{
         if (_txVodPlayer == nil){
             _txVodPlayer = [TXVodPlayer new];
             _txVodPlayer.vodDelegate = self;
+            [self setupPlayerWithBool:onlyAudio];
         }
     }
-    return [NSNumber numberWithInt:-1];
+    return [NSNumber numberWithLongLong:_textureId];
+}
+
+-(void)setupPlayerWithBool:(BOOL)onlyAudio{
+    if (!onlyAudio) {
+        if (_textureId < 0) {
+            _textureRegistry = [_registrar textures];
+            int64_t tId = [_textureRegistry registerTexture:self];
+            _textureId = tId;
+        }
+        
+        if (_txLivePlayer != nil) {
+            TXLivePlayConfig *config = [TXLivePlayConfig new];
+            [config setPlayerPixelFormatType:kCVPixelFormatType_32BGRA];
+            [_txLivePlayer setConfig:config];
+            [_txLivePlayer setVideoProcessDelegate:self];
+            _txLivePlayer.enableHWAcceleration = YES;
+        }
+        
+        if (_txVodPlayer != nil) {
+            TXVodPlayConfig* config = [TXVodPlayConfig new];
+            [config setPlayerPixelFormatType:kCVPixelFormatType_32BGRA];
+            [_txVodPlayer setConfig:config];
+            [_txVodPlayer setVideoProcessDelegate:self];
+            _txVodPlayer.enableHWAcceleration = YES;
+        }
+    }
+}
+
+/**
+ * 视频渲染对象回调
+ * @param pixelBuffer   渲染图像
+ * @return              返回YES则SDK不再显示；返回NO则SDK渲染模块继续渲染
+ *  说明：渲染图像的数据类型为config中设置的renderPixelFormatType
+ */
+- (BOOL)onPlayerPixelBuffer:(CVPixelBufferRef)pixelBuffer{
+    if (_lastBuffer == nil) {
+        _lastBuffer = CVPixelBufferRetain(pixelBuffer);
+        CFRetain(pixelBuffer);
+    } else if (_lastBuffer != pixelBuffer) {
+        CVPixelBufferRelease(_lastBuffer);
+        _lastBuffer = CVPixelBufferRetain(pixelBuffer);
+        CFRetain(pixelBuffer);
+    }
+
+    CVPixelBufferRef newBuffer = pixelBuffer;
+
+    CVPixelBufferRef old = _latestPixelBuffer;
+    while (!OSAtomicCompareAndSwapPtrBarrier(old, newBuffer,
+                                             (void **)&_latestPixelBuffer)) {
+        old = _latestPixelBuffer;
+    }
+
+    if (old && old != pixelBuffer) {
+        CFRelease(old);
+    }
+    if (_textureId >= 0) {
+        [_textureRegistry textureFrameAvailable:_textureId];
+    }
+    
+    return NO;
 }
 
 - (int)startPlay:(NSString *)url type:(TX_Enum_PlayType)playType  {
@@ -297,6 +371,26 @@ static const int uninitialized = -1;
     [self stopPlay];
     _txLivePlayer = nil;
     _txVodPlayer = nil;
+    
+    if (_textureId >= 0) {
+        [_textureRegistry unregisterTexture:_textureId];
+        _textureId = -1;
+        _textureRegistry = nil;
+    }
+
+    CVPixelBufferRef old = _latestPixelBuffer;
+    while (!OSAtomicCompareAndSwapPtrBarrier(old, nil,
+                                             (void **)&_latestPixelBuffer)) {
+        old = _latestPixelBuffer;
+    }
+    if (old) {
+        CFRelease(old);
+    }
+
+    if (_lastBuffer) {
+        CVPixelBufferRelease(_lastBuffer);
+        _lastBuffer = nil;
+    }
     
     [_methodChannel setMethodCallHandler:nil];
     _methodChannel = nil;

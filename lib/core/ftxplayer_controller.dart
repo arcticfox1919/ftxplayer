@@ -58,41 +58,32 @@ class FTXPlayerController extends ChangeNotifier implements ValueListenable<FtxV
   _eventHandler(event) {
     if(event == null) return;
     final Map<dynamic, dynamic> map = event;
-    print("= event state = ${map.toString()}");
+    debugPrint("= event = ${map.toString()}");
     switch(map["event"]){
       case 2002:
-        debugPrint("已经连接服务器，开始拉流");
         break;
       case 2003:
-        debugPrint("收到首帧数据");
         break;
       case 2004:
         if(_isNeedDisposed) return;
         _changeState(FtxState.playing);
-        debugPrint("视频播放开始");
         break;
       case 2006:
-        debugPrint("播放结束");
         _stateStreamController.add(FtxState.completed);
         break;
       case -2301:
-        debugPrint("网络断连，且经多次重连亦不能恢复");
         _warningStreamController.add(FtxWarning.disconnect);
         break;
       case 2103:
-        debugPrint("网络断连，已启动自动重连");
         _warningStreamController.add(FtxWarning.reconnect);
         break;
       case 3001:
-        debugPrint("RTMP-DNS 解析失败");
         _warningStreamController.add(FtxWarning.dnsFail);
         break;
       case 3002:
-        debugPrint("RTMP 服务器连接失败");
         _warningStreamController.add(FtxWarning.severConnFail);
         break;
       case 3003:
-        debugPrint("RTMP 服务器握手失败");
         _warningStreamController.add(FtxWarning.shakeFail);
         break;
 
